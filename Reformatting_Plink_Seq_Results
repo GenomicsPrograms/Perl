@@ -1,0 +1,35 @@
+use warnings;
+use strict;
+
+my $header = <>; # ignore header, remove if plink has no header
+
+while (<>) {
+    chomp();
+    my ($chr, $pos, $ref_alts, @gts) = split(/[:\s]+/, $_);
+    $chr =~ s/^\D+//; # remove "chr" prefix
+    
+    my ($ref, @alts) = split(/[\/,]/, $ref_alts);
+
+    # ignore non-mono/bi allelic
+    # this will also ignore something like A/T,TTA !!
+    next if grep{length($_)>2}($ref, @alts);
+    
+    my %homc;
+    @homc{$ref, @alts} = (0) x (@alts+1);
+    
+    my $hetc;
+
+    for my $gt (@gts) {
+        my ($v1, $v2, $c) = split(/[|=]/, $gt);
+        if ($v1 eq $v2) {       # homo
+            $homc{$v1} = $c;
+        } else {                # het
+            $hetc+=$c;
+        }
+    }
+
+    my $alt = join(",", @alts); 
+    my $altc = join(",", @homc{@alts});
+
+    print join("\t", $chr, $pos, $ref, $alt, $homc{$ref}, $altc, $hetc),"\n";
+}
